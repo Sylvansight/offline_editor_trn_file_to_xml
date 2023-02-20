@@ -17,7 +17,7 @@ xml_code = '000o0000o0000o0000o0000o0000o000'
 #   2)  change this bit to point to your email.trn file
 #    (use full file path if not in same folder as this script)
 
-trn_file = 'c:\\folder\\TURN121922_test.TRN'
+trn_file = 'TURN121922_test.TRN'
 
 ######################################################
 
@@ -38,8 +38,8 @@ def make_turns(orders_xml, position_number, order_list, append):
     turn = ET.SubElement(turns, 'turn', pos_id=position_number, append="false")  # a single position
     orders = ET.SubElement(turn, 'orders') # orders collection for a position
     for item in order_list:
-        order = ET.SubElement(orders, 'order', id=str(item[0]))
-        for p in item[1:]:
+        order = ET.SubElement(orders, 'order', id=str(item[0]), issue_type=str(item[1]))
+        for p in item[2:]:
             param = ET.SubElement(order, 'param').text = str(p)
     return orders_xml
 
@@ -57,12 +57,9 @@ def reformat_trn_order(trn_order_str):
     # receive a single order line from the trn file
     # for example:   'Order=2240,0,0,16,26; // GPI Sector'
     # want to get the numbers between the = and the ;
-    # then convert into a list, and remove the 2nd number
-    #  (2nd number is the stop on error bit, which the xml api
-    # doesn't like, there's probably a different way of doing that
+    # then convert into a list (order_id / issue_type/ params)
 
     trn_order_str = trn_order_str[6:].split(';')[0].split(',')
-    trn_order_str.pop(1)
     return trn_order_str
 
 
