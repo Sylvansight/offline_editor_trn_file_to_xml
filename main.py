@@ -33,12 +33,24 @@ def start_orders():
     return turns
 
 
-def make_turns(orders_xml, position_number, order_list, append):
+def make_turns(orders_xml, position_number, order_list, append, seq):
+    if seq[0] == '0':
+        sequence = '0'
+        seq_after = '0'
+    else:
+        sequence = '1'
+        seq_after = str(seq[0])
     turns = orders_xml
     turn = ET.SubElement(turns, 'turn', pos_id=position_number, append="false")  # a single position
     orders = ET.SubElement(turn, 'orders') # orders collection for a position
     for item in order_list:
-        order = ET.SubElement(orders, 'order', id=str(item[0]), issue_type=str(item[1]))
+        order = ET.SubElement(orders
+                              , 'order'
+                              , id=str(item[0])
+                              , issue_type=str(item[1])
+                              , seq=sequence
+                              , seq_after=seq_after
+                              )
         for p in item[2:]:
             param = ET.SubElement(order, 'param').text = str(p)
     return orders_xml
@@ -57,9 +69,12 @@ def reformat_trn_order(trn_order_str):
     # receive a single order line from the trn file
     # for example:   'Order=2240,0,0,16,26; // GPI Sector'
     # want to get the numbers between the = and the ;
-    # then convert into a list (order_id / issue_type/ params)
+    # then convert into a list, and remove the 2nd number
+    #  (2nd number is the stop on error bit, which the xml api
+    # doesn't like, there's probably a different way of doing that
 
     trn_order_str = trn_order_str[6:].split(';')[0].split(',')
+    # trn_order_str.pop(1)
     return trn_order_str
 
 
@@ -73,7 +88,7 @@ def parse_trn_file(file_path, orders_xml):
                 next
             if row[:9] == 'Position=' and not start_of_file:
                 # all orders for the previous position now collected, convert them to xml
-                orders_xml = make_turns(orders_xml, position_number, order_list, "false")
+                orders_xml = make_turns(orders_xml, position_number, order_list, "false", seq_array)
                 # clean down the list and grab the new position number
                 order_list = []
                 position_number = row[9:].split(';')[0]
@@ -83,9 +98,14 @@ def parse_trn_file(file_path, orders_xml):
                 start_of_file = False
                 order_list = []
                 next
+            if row[:9] == 'Sequence=':
+                seq_array = row[9:].split(';')[0].split(',')
+
+
+
 
         # iteration finished, but should still be one last ship to sort out
-        orders_xml = make_turns(orders_xml, position_number, order_list, "false")
+        orders_xml = make_turns(orders_xml, position_number, order_list, "false", seq_array)
 
     return orders_xml
 
